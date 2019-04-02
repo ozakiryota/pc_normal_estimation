@@ -44,7 +44,6 @@ NormalEstimationPCLMultiThreads::NormalEstimationPCLMultiThreads()
 	pub_pc = nh.advertise<sensor_msgs::PointCloud2>("/normals", 1);
 	viewer.setBackgroundColor(1, 1, 1);
 	viewer.addCoordinateSystem(0.8, "axis");
-	// viewer.setCameraPosition(0.0, 0.0, 50.0, 0.0, 0.0, 0.0);
 	viewer.setCameraPosition(-30.0, 0.0, 10.0, 0.0, 0.0, 1.0);
 }
 
