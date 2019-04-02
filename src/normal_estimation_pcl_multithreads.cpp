@@ -143,7 +143,7 @@ void NormalEstimationPCLMultiThreads::Visualization(void)
 void NormalEstimationPCLMultiThreads::Publication(void)
 {
 	sensor_msgs::PointCloud2 pc;
-	pcl::toROSMsg(*cloud, pc);
+	pcl::toROSMsg(*normals, pc);
 	pub_pc.publish(pc);
 
 }
