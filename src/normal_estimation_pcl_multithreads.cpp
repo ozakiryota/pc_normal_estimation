@@ -21,9 +21,7 @@ class NormalEstimationPCLMultiThreads{
 		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud {new pcl::PointCloud<pcl::PointXYZ>};
 		pcl::PointCloud<pcl::PointNormal>::Ptr normals {new pcl::PointCloud<pcl::PointNormal>};
-		/*objects*/
-		ros::Time time_pub;
-		/*class*/
+		/*sub class*/
 		class FittingWalls_{
 			private:
 				pcl::PointCloud<pcl::PointNormal>::Ptr normals_ {new pcl::PointCloud<pcl::PointNormal>};
@@ -55,7 +53,6 @@ void NormalEstimationPCLMultiThreads::CallbackPC(const sensor_msgs::PointCloud2C
 	std::cout << "CALLBACK PC" << std::endl;
 	pcl::fromROSMsg(*msg, *cloud);
 	std::cout << "cloud->points.size() = " << cloud->points.size() << std::endl;
-	// time_pub = msg->header.stamp;
 	ClearPoints();
 	kdtree.setInputCloud(cloud);
 	const int num_threads = std::thread::hardware_concurrency();
