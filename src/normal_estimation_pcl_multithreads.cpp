@@ -17,7 +17,7 @@ class NormalEstimationPCLMultiThreads{
 		/*publish*/
 		ros::Publisher pub_pc;
 		/*pcl*/
-		pcl::visualization::PCLVisualizer viewer{"Gaussian Spheres"};
+		pcl::visualization::PCLVisualizer viewer {"Normal Estimation PCL Multi Threads"};
 		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud {new pcl::PointCloud<pcl::PointXYZ>};
 		pcl::PointCloud<pcl::PointNormal>::Ptr normals {new pcl::PointCloud<pcl::PointNormal>};
