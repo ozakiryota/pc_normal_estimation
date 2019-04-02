@@ -1,0 +1,16 @@
+<launch>
+	<!-- global rosparam -->
+	<param name="use_sim_time" value="true"/>
+
+	<!-- rosbag -->
+	<node pkg="rosbag" type="play" name="player" args="--clock /home/amsl/ozaki/bagfiles/mocap/0119_infant/2019-01-19-18-26-15.bag -s 60"/>
+
+	<!-- rviz -->
+	<node pkg="rviz" type="rviz" name="rviz" args="-d /home/amsl/.rviz/normal_estimation.rviz"/>
+
+	<!-- sensor driver -->
+	<include file="$(find velodyne_pointcloud)/launch/32e_points.launch"/>
+
+	<!-- main -->
+	<node pkg="normal_estimation_pcl" name="normal_estimation_pcl" type="normal_estimation_pcl" output="screen"/>
+</launch>
