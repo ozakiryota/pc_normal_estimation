@@ -22,7 +22,7 @@ class NormalEstimationPCLMultiThreads{
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud {new pcl::PointCloud<pcl::PointXYZ>};
 		pcl::PointCloud<pcl::PointNormal>::Ptr normals {new pcl::PointCloud<pcl::PointNormal>};
 		/*sub class*/
-		class NormalEstimationPCLMultiThreads_{
+		class SubClass{
 			private:
 				pcl::PointCloud<pcl::PointNormal>::Ptr normals_ {new pcl::PointCloud<pcl::PointNormal>};
 			public:
@@ -56,21 +56,21 @@ void NormalEstimationPCLMultiThreads::CallbackPC(const sensor_msgs::PointCloud2C
 	kdtree.setInputCloud(cloud);
 	const int num_threads = std::thread::hardware_concurrency();
 	std::cout << "number of threads: " << num_threads << std::endl;
-	std::vector<std::thread> threads_fittingwalls;
-	std::vector<NormalEstimationPCLMultiThreads_> objects;
+	std::vector<std::thread> multi_threads;
+	std::vector<SubClass> objects;
 	for(int i=0;i<num_threads;i++){
-		NormalEstimationPCLMultiThreads_ tmp_object;
+		SubClass tmp_object;
 		objects.push_back(tmp_object);
 	}
 	double start_normal_est = ros::Time::now().toSec();
 	for(int i=0;i<num_threads;i++){
-		threads_fittingwalls.push_back(
+		multi_threads.push_back(
 			std::thread([i, num_threads, &objects, this]{
 				objects[i].Compute(*this, i*cloud->points.size()/num_threads, (i+1)*cloud->points.size()/num_threads);
 			})
 		);
 	}
-	for(std::thread &th : threads_fittingwalls)	th.join();
+	for(std::thread &th : multi_threads)	th.join();
 	for(int i=0;i<num_threads;i++)	objects[i].Merge(*this);
 	std::cout << "normal estimation time[s] = " << ros::Time::now().toSec() - start_normal_est << std::endl;
 
@@ -83,7 +83,7 @@ void NormalEstimationPCLMultiThreads::ClearPoints(void)
 	normals->points.clear();
 }
 
-void NormalEstimationPCLMultiThreads::NormalEstimationPCLMultiThreads_::Compute(NormalEstimationPCLMultiThreads &mainclass, size_t i_start, size_t i_end)
+void NormalEstimationPCLMultiThreads::SubClass::Compute(NormalEstimationPCLMultiThreads &mainclass, size_t i_start, size_t i_end)
 {
 	const size_t skip_step = 3;
 	for(size_t i=i_start;i<i_end;i+=skip_step){
@@ -109,7 +109,7 @@ void NormalEstimationPCLMultiThreads::NormalEstimationPCLMultiThreads_::Compute(
 	}
 }
 
-void NormalEstimationPCLMultiThreads::NormalEstimationPCLMultiThreads_::Merge(NormalEstimationPCLMultiThreads &mainclass)
+void NormalEstimationPCLMultiThreads::SubClass::Merge(NormalEstimationPCLMultiThreads &mainclass)
 {
 	*mainclass.normals += *normals_;
 }
