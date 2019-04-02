@@ -54,6 +54,7 @@ void NormalEstimationPCLMultiThreads::CallbackPC(const sensor_msgs::PointCloud2C
 {
 	std::cout << "CALLBACK PC" << std::endl;
 	pcl::fromROSMsg(*msg, *cloud);
+	std::cout << "cloud->points.size() = " << cloud->points.size() << std::endl;
 	// time_pub = msg->header.stamp;
 	ClearPoints();
 	kdtree.setInputCloud(cloud);
@@ -142,6 +143,9 @@ void NormalEstimationPCLMultiThreads::Visualization(void)
 
 void NormalEstimationPCLMultiThreads::Publication(void)
 {
+	normals->header.stamp = cloud->header.stamp;
+	normals->header.frame_id = cloud->header.frame_id;
+
 	sensor_msgs::PointCloud2 pc;
 	pcl::toROSMsg(*normals, pc);
 	pub_pc.publish(pc);
