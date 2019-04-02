@@ -22,7 +22,7 @@ class NormalEstimationPCLMultiThreads{
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud {new pcl::PointCloud<pcl::PointXYZ>};
 		pcl::PointCloud<pcl::PointNormal>::Ptr normals {new pcl::PointCloud<pcl::PointNormal>};
 		/*sub class*/
-		class FittingWalls_{
+		class NormalEstimationPCLMultiThreads_{
 			private:
 				pcl::PointCloud<pcl::PointNormal>::Ptr normals_ {new pcl::PointCloud<pcl::PointNormal>};
 			public:
@@ -57,9 +57,9 @@ void NormalEstimationPCLMultiThreads::CallbackPC(const sensor_msgs::PointCloud2C
 	const int num_threads = std::thread::hardware_concurrency();
 	std::cout << "number of threads: " << num_threads << std::endl;
 	std::vector<std::thread> threads_fittingwalls;
-	std::vector<FittingWalls_> objects;
+	std::vector<NormalEstimationPCLMultiThreads_> objects;
 	for(int i=0;i<num_threads;i++){
-		FittingWalls_ tmp_object;
+		NormalEstimationPCLMultiThreads_ tmp_object;
 		objects.push_back(tmp_object);
 	}
 	double start_normal_est = ros::Time::now().toSec();
@@ -83,7 +83,7 @@ void NormalEstimationPCLMultiThreads::ClearPoints(void)
 	normals->points.clear();
 }
 
-void NormalEstimationPCLMultiThreads::FittingWalls_::Compute(NormalEstimationPCLMultiThreads &mainclass, size_t i_start, size_t i_end)
+void NormalEstimationPCLMultiThreads::NormalEstimationPCLMultiThreads_::Compute(NormalEstimationPCLMultiThreads &mainclass, size_t i_start, size_t i_end)
 {
 	const size_t skip_step = 3;
 	for(size_t i=i_start;i<i_end;i+=skip_step){
@@ -109,7 +109,7 @@ void NormalEstimationPCLMultiThreads::FittingWalls_::Compute(NormalEstimationPCL
 	}
 }
 
-void NormalEstimationPCLMultiThreads::FittingWalls_::Merge(NormalEstimationPCLMultiThreads &mainclass)
+void NormalEstimationPCLMultiThreads::NormalEstimationPCLMultiThreads_::Merge(NormalEstimationPCLMultiThreads &mainclass)
 {
 	*mainclass.normals += *normals_;
 }
