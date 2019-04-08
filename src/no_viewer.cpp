@@ -17,7 +17,6 @@ class NormalEstimationPCLMultiThreads{
 		/*publish*/
 		ros::Publisher pub_pc;
 		/*pcl*/
-		pcl::visualization::PCLVisualizer viewer {"Normal Estimation PCL Multi Threads"};
 		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud {new pcl::PointCloud<pcl::PointXYZ>};
 		pcl::PointCloud<pcl::PointNormal>::Ptr normals {new pcl::PointCloud<pcl::PointNormal>};
@@ -39,7 +38,6 @@ class NormalEstimationPCLMultiThreads{
 		NormalEstimationPCLMultiThreads();
 		void CallbackPC(const sensor_msgs::PointCloud2ConstPtr &msg);
 		void ClearPoints(void);
-		void Visualization(void);
 		void Publication(void);
 };
 
@@ -47,9 +45,6 @@ NormalEstimationPCLMultiThreads::NormalEstimationPCLMultiThreads()
 {
 	sub_pc = nh.subscribe("/velodyne_points", 1, &NormalEstimationPCLMultiThreads::CallbackPC, this);
 	pub_pc = nh.advertise<sensor_msgs::PointCloud2>("/normals", 1);
-	viewer.setBackgroundColor(1, 1, 1);
-	viewer.addCoordinateSystem(0.8, "axis");
-	viewer.setCameraPosition(-30.0, 0.0, 10.0, 0.0, 0.0, 1.0);
 }
 
 NormalEstimationPCLMultiThreads::SubClass::SubClass(pcl::PointCloud<pcl::PointXYZ> &cloud, pcl::KdTreeFLANN<pcl::PointXYZ> &kdtree, int i, int num_threads){
@@ -87,7 +82,6 @@ void NormalEstimationPCLMultiThreads::CallbackPC(const sensor_msgs::PointCloud2C
 	std::cout << "normal estimation time[s] = " << ros::Time::now().toSec() - start_normal_est << std::endl;
 
 	Publication();
-	Visualization();
 }
 
 void NormalEstimationPCLMultiThreads::ClearPoints(void)
@@ -135,21 +129,6 @@ std::vector<int> NormalEstimationPCLMultiThreads::SubClass::KdtreeSearch(pcl::Po
 void NormalEstimationPCLMultiThreads::SubClass::Merge(NormalEstimationPCLMultiThreads &mainclass)
 {
 	*mainclass.normals += *normals_;
-}
-
-void NormalEstimationPCLMultiThreads::Visualization(void)
-{
-	viewer.removeAllPointClouds();
-
-	viewer.addPointCloud(cloud, "cloud");
-	viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 0.0, "cloud");
-	viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cloud");
-	
-	viewer.addPointCloudNormals<pcl::PointNormal>(normals, 1, 0.5, "normals");
-	viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 0.0, 0.0, "normals");
-	viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "normals");
-
-	viewer.spinOnce();
 }
 
 void NormalEstimationPCLMultiThreads::Publication(void)
