@@ -12,6 +12,5 @@
 	<include file="$(find velodyne_pointcloud)/launch/32e_points.launch"/>
 
 	<!-- main -->
-	<!-- <node pkg="normal_estimation_pcl" name="normal_estimation_pcl_multithreads" type="normal_estimation_pcl_multithreads" output="screen"/> -->
-	<!-- <node pkg="normal_estimation_pcl" name="new_normal_estimation_pcl_multithreads" type="new_normal_estimation_pcl_multithreads" output="screen"/> -->
+	<node pkg="normal_estimation_pcl" name="normal_estimation_pcl_multithreads" type="normal_estimation_pcl_multithreads" output="screen"/>
 </launch>

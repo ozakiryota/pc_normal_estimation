@@ -1,7 +1,0 @@
-<launch>
-	<!-- global rosparam -->
-	<param name="use_sim_time" value="true"/>
-
-	<!-- main -->
-	<node pkg="normal_estimation_pcl" name="new_normal_estimation_pcl_multithreads" type="new_normal_estimation_pcl_multithreads" output="screen"/>
-</launch>

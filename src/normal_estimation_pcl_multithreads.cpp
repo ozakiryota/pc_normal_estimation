@@ -24,16 +24,21 @@ class NormalEstimationPCLMultiThreads{
 		/*sub class*/
 		class SubClass{
 			private:
+				pcl::KdTreeFLANN<pcl::PointXYZ> kdtree_;
+				pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ {new pcl::PointCloud<pcl::PointXYZ>};
 				pcl::PointCloud<pcl::PointNormal>::Ptr normals_ {new pcl::PointCloud<pcl::PointNormal>};
+				size_t i_start;
+				size_t i_end;
 			public:
-				void Compute(NormalEstimationPCLMultiThreads &mainclass, size_t i_start, size_t i_end);
+				SubClass(pcl::PointCloud<pcl::PointXYZ> &cloud, pcl::KdTreeFLANN<pcl::PointXYZ> &kdtree, int i, int num_threads);
+				void Compute(void);
+				std::vector<int> KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius);
 				void Merge(NormalEstimationPCLMultiThreads &mainclass);
 		};
 	public:
 		NormalEstimationPCLMultiThreads();
 		void CallbackPC(const sensor_msgs::PointCloud2ConstPtr &msg);
 		void ClearPoints(void);
-		std::vector<int> KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius);
 		void Visualization(void);
 		void Publication(void);
 };
@@ -45,6 +50,13 @@ NormalEstimationPCLMultiThreads::NormalEstimationPCLMultiThreads()
 	viewer.setBackgroundColor(1, 1, 1);
 	viewer.addCoordinateSystem(0.8, "axis");
 	viewer.setCameraPosition(-30.0, 0.0, 10.0, 0.0, 0.0, 1.0);
+}
+
+NormalEstimationPCLMultiThreads::SubClass::SubClass(pcl::PointCloud<pcl::PointXYZ> &cloud, pcl::KdTreeFLANN<pcl::PointXYZ> &kdtree, int i, int num_threads){
+	*cloud_ = cloud;
+	kdtree_ = kdtree;
+	i_start = i*cloud.points.size()/num_threads;
+	i_end = (i+1)*cloud.points.size()/num_threads;
 }
 
 void NormalEstimationPCLMultiThreads::CallbackPC(const sensor_msgs::PointCloud2ConstPtr &msg)
@@ -59,14 +71,14 @@ void NormalEstimationPCLMultiThreads::CallbackPC(const sensor_msgs::PointCloud2C
 	std::vector<std::thread> multi_threads;
 	std::vector<SubClass> objects;
 	for(int i=0;i<num_threads;i++){
-		SubClass tmp_object;
+		SubClass tmp_object(*cloud, kdtree, i, num_threads);
 		objects.push_back(tmp_object);
 	}
 	double start_normal_est = ros::Time::now().toSec();
 	for(int i=0;i<num_threads;i++){
 		multi_threads.push_back(
-			std::thread([i, num_threads, &objects, this]{
-				objects[i].Compute(*this, i*cloud->points.size()/num_threads, (i+1)*cloud->points.size()/num_threads);
+			std::thread([i, &objects]{
+				objects[i].Compute();
 			})
 		);
 	}
@@ -83,23 +95,25 @@ void NormalEstimationPCLMultiThreads::ClearPoints(void)
 	normals->points.clear();
 }
 
-void NormalEstimationPCLMultiThreads::SubClass::Compute(NormalEstimationPCLMultiThreads &mainclass, size_t i_start, size_t i_end)
+void NormalEstimationPCLMultiThreads::SubClass::Compute(void)
 {
+	double start_computation = ros::Time::now().toSec();
+	std::cout << "i_start = " << i_start << std::endl; 
 	const size_t skip_step = 3;
 	for(size_t i=i_start;i<i_end;i+=skip_step){
 		/*search neighbor points*/
 		std::vector<int> indices;
 		const double search_radius = 0.5;
-		indices = mainclass.KdtreeSearch(mainclass.cloud->points[i], search_radius);
+		indices = KdtreeSearch(cloud_->points[i], search_radius);
 		/*compute normal*/
 		float curvature;
 		Eigen::Vector4f plane_parameters;
-		pcl::computePointNormal(*mainclass.cloud, indices, plane_parameters, curvature);
+		pcl::computePointNormal(*cloud_, indices, plane_parameters, curvature);
 		/*create tmp object*/
 		pcl::PointNormal tmp_normal;
-		tmp_normal.x = mainclass.cloud->points[i].x;
-		tmp_normal.y = mainclass.cloud->points[i].y;
-		tmp_normal.z = mainclass.cloud->points[i].z;
+		tmp_normal.x = cloud_->points[i].x;
+		tmp_normal.y = cloud_->points[i].y;
+		tmp_normal.z = cloud_->points[i].z;
 		tmp_normal.normal_x = plane_parameters[0];
 		tmp_normal.normal_y = plane_parameters[1];
 		tmp_normal.normal_z = plane_parameters[2];
@@ -107,19 +121,20 @@ void NormalEstimationPCLMultiThreads::SubClass::Compute(NormalEstimationPCLMulti
 		flipNormalTowardsViewpoint(tmp_normal, 0.0, 0.0, 0.0, tmp_normal.normal_x, tmp_normal.normal_y, tmp_normal.normal_z);
 		normals_->points.push_back(tmp_normal);
 	}
+	std::cout << "time for single computation[s] = " << ros::Time::now().toSec() - start_computation << std::endl;
+}
+
+std::vector<int> NormalEstimationPCLMultiThreads::SubClass::KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius)
+{
+	std::vector<int> pointIdxRadiusSearch;
+	std::vector<float> pointRadiusSquaredDistance;
+	if(kdtree_.radiusSearch(searchpoint, search_radius, pointIdxRadiusSearch, pointRadiusSquaredDistance)<=0)	std::cout << "kdtree error" << std::endl;
+	return pointIdxRadiusSearch; 
 }
 
 void NormalEstimationPCLMultiThreads::SubClass::Merge(NormalEstimationPCLMultiThreads &mainclass)
 {
 	*mainclass.normals += *normals_;
-}
-
-std::vector<int> NormalEstimationPCLMultiThreads::KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius)
-{
-	std::vector<int> pointIdxRadiusSearch;
-	std::vector<float> pointRadiusSquaredDistance;
-	if(kdtree.radiusSearch(searchpoint, search_radius, pointIdxRadiusSearch, pointRadiusSquaredDistance)<=0)	std::cout << "kdtree error" << std::endl;
-	return pointIdxRadiusSearch; 
 }
 
 void NormalEstimationPCLMultiThreads::Visualization(void)
