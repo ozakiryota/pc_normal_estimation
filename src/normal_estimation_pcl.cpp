@@ -19,7 +19,7 @@ class NormalEstimationPCL{
 		NormalEstimationPCL();
 		void Callback(const sensor_msgs::PointCloud2ConstPtr& msg);
 		void NormalEstimation(void);
-		void Visualizer(void);
+		void Visualization(void);
 		void Publication(void);
 };
 
@@ -37,7 +37,7 @@ void NormalEstimationPCL::Callback(const sensor_msgs::PointCloud2ConstPtr &msg)
 	pcl::fromROSMsg(*msg, *cloud);
 	copyPointCloud(*cloud, *normals);
 	NormalEstimation();
-	Visualizer();
+	Visualization();
 	Publication();
 }
 
@@ -52,16 +52,16 @@ void NormalEstimationPCL::NormalEstimation(void)
 	ne.compute(*normals);
 }
 
-void NormalEstimationPCL::Visualizer(void)
+void NormalEstimationPCL::Visualization(void)
 {
 	std::cout << "VISUALIZER" << std::endl;
 
-	viewer.removePointCloud("cloud");
+	viewer.removeAllPointClouds();
+
 	viewer.addPointCloud(cloud, "cloud");
 	viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 0.0, "cloud");
 	viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cloud");
 
-	viewer.removePointCloud("normals");
 	viewer.addPointCloudNormals<pcl::PointNormal>(normals, 10, 0.5, "normals");
 	viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 0.0, 0.0, "normals");
 	viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 3, "normals");
