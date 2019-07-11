@@ -3,7 +3,6 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/visualization/cloud_viewer.h>
-#include <pcl/features/normal_3d.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/features/normal_3d_omp.h>
 
