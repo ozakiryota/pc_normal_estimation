@@ -198,3 +198,5 @@ add_executable(normal_estimation_pcl_multithreads src/normal_estimation_pcl_mult
 target_link_libraries(normal_estimation_pcl_multithreads ${catkin_LIBRARIES})
 add_executable(no_viewer src/no_viewer.cpp)
 target_link_libraries(no_viewer ${catkin_LIBRARIES})
+add_executable(normal_estimation_pcl_omp src/normal_estimation_pcl_omp.cpp)
+target_link_libraries(normal_estimation_pcl_omp ${catkin_LIBRARIES})
