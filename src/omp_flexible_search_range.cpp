@@ -55,9 +55,9 @@ void NormalEstimationMultiThread::CallbackPC(const sensor_msgs::PointCloud2Const
 	/* std::cout << "CALLBACK PC" << std::endl; */
 
 	pcl::fromROSMsg(*msg, *cloud);
-	std::cout << "cloud->points.size() = " << cloud->points.size() << std::endl;
-	/* std::cout << "cloud->is_dense = " << (bool)cloud->is_dense << std::endl; */
-	copyPointCloud(*cloud, *normals);
+	/* std::cout << "cloud->points.size() = " << cloud->points.size() << std::endl; */
+	normals->points.clear();
+	normals->points.resize(cloud->points.size()/skip + 1);
 
 	kdtree.setInputCloud(cloud);
 	Computation();
@@ -68,7 +68,7 @@ void NormalEstimationMultiThread::CallbackPC(const sensor_msgs::PointCloud2Const
 
 void NormalEstimationMultiThread::Computation(void)
 {
-	std::cout << "omp_get_max_threads() = " << omp_get_max_threads() << std::endl;
+	/* std::cout << "omp_get_max_threads() = " << omp_get_max_threads() << std::endl; */
 
 	double time_start = ros::Time::now().toSec();
 	
@@ -83,14 +83,18 @@ void NormalEstimationMultiThread::Computation(void)
 		Eigen::Vector4f plane_parameters;
 		pcl::computePointNormal(*cloud, indices, plane_parameters, curvature);
 		/*input*/
-		normals->points[i].normal_x = plane_parameters[0];
-		normals->points[i].normal_y = plane_parameters[1];
-		normals->points[i].normal_z = plane_parameters[2];
-		normals->points[i].curvature = curvature;
-		flipNormalTowardsViewpoint(cloud->points[i], 0.0, 0.0, 0.0, normals->points[i].normal_x, normals->points[i].normal_y, normals->points[i].normal_z);
+		int normal_index = i/skip;
+		normals->points[normal_index].x = cloud->points[i].x;
+		normals->points[normal_index].y = cloud->points[i].y;
+		normals->points[normal_index].z = cloud->points[i].z;
+		normals->points[normal_index].normal_x = plane_parameters[0];
+		normals->points[normal_index].normal_y = plane_parameters[1];
+		normals->points[normal_index].normal_z = plane_parameters[2];
+		normals->points[normal_index].curvature = curvature;
+		flipNormalTowardsViewpoint(cloud->points[i], 0.0, 0.0, 0.0, normals->points[normal_index].normal_x, normals->points[normal_index].normal_y, normals->points[normal_index].normal_z);
 	}
 
-	std::cout << "computation time [s] = " << ros::Time::now().toSec() - time_start << std::endl;
+	/* std::cout << "computation time [s] = " << ros::Time::now().toSec() - time_start << std::endl; */
 }
 
 std::vector<int> NormalEstimationMultiThread::KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius)
@@ -140,8 +144,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "normal_estimation_omp");
 	std::cout << "Normal Estimation OMP" << std::endl;
 	
-	NormalEstimationMultiThread normal_estimation_omp;
-
+	NormalEstimationMultiThread normal_estimation_multi;
 
 	ros::spin();
 }

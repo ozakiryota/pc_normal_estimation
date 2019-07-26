@@ -13,6 +13,6 @@
 
 	<!-- main -->
 	<node pkg="normal_estimation_pcl" name="omp_flexible_search_range" type="omp_flexible_search_range" output="screen">
-		<param name="skip" type="int" value="4"/>
+		<param name="skip" type="int" value="3"/>
 	</node>
 </launch>
