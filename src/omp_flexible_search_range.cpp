@@ -85,7 +85,7 @@ void NormalEstimationMultiThread::Computation(void)
 		Eigen::Vector4f plane_parameters;
 		pcl::computePointNormal(*cloud, indices, plane_parameters, curvature);
 		/*input*/
-		int normal_index = i/skip;
+		size_t normal_index = i/skip;
 		normals->points[normal_index].x = cloud->points[i].x;
 		normals->points[normal_index].y = cloud->points[i].y;
 		normals->points[normal_index].z = cloud->points[i].z;
