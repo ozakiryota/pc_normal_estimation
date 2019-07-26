@@ -29,8 +29,8 @@ class NormalEstimationMultiThread{
 		NormalEstimationMultiThread();
 		void CallbackPC(const sensor_msgs::PointCloud2ConstPtr &msg);
 		void Computation(void);
-		std::vector<int> KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius);
 		double Getdepth(pcl::PointXYZ point);
+		std::vector<int> KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius);
 		void Visualization(void);
 		void Publication(void);
 };
@@ -93,16 +93,15 @@ void NormalEstimationMultiThread::Computation(void)
 		normals->points[normal_index].curvature = curvature;
 		flipNormalTowardsViewpoint(cloud->points[i], 0.0, 0.0, 0.0, normals->points[normal_index].normal_x, normals->points[normal_index].normal_y, normals->points[normal_index].normal_z);
 	}
+	for(size_t i=0;i<normals->points.size();){
+		if(std::isnan(normals->points[i].normal_x) || std::isnan(normals->points[i].normal_y) || std::isnan(normals->points[i].normal_z)){
+			std::cout << "deleted NAN normal" << std::endl;
+			normals->points.erase(normals->points.begin() + i);
+		}
+		else	i++;
+	}
 
 	std::cout << "computation time [s] = " << ros::Time::now().toSec() - time_start << std::endl;
-}
-
-std::vector<int> NormalEstimationMultiThread::KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius)
-{
-	std::vector<int> pointIdxRadiusSearch;
-	std::vector<float> pointRadiusSquaredDistance;
-	if(kdtree.radiusSearch(searchpoint, search_radius, pointIdxRadiusSearch, pointRadiusSquaredDistance)<=0)	std::cout << "kdtree error" << std::endl;
-	return pointIdxRadiusSearch; 
 }
 
 double NormalEstimationMultiThread::Getdepth(pcl::PointXYZ point)
@@ -112,6 +111,15 @@ double NormalEstimationMultiThread::Getdepth(pcl::PointXYZ point)
 		+ point.y*point.y
 		+ point.z*point.z
 	);
+	return depth;
+}
+
+std::vector<int> NormalEstimationMultiThread::KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius)
+{
+	std::vector<int> pointIdxRadiusSearch;
+	std::vector<float> pointRadiusSquaredDistance;
+	if(kdtree.radiusSearch(searchpoint, search_radius, pointIdxRadiusSearch, pointRadiusSquaredDistance)<=0)	std::cout << "kdtree error" << std::endl;
+	return pointIdxRadiusSearch; 
 }
 
 void NormalEstimationMultiThread::Visualization(void)
