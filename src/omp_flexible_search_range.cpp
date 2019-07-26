@@ -6,50 +6,48 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/visualization/cloud_viewer.h>
-/* #include <thread> */
 #include <omp.h>
 
 class NormalEstimationMultiThread{
 	private:
 		/*node handle*/
 		ros::NodeHandle nh;
+		ros::NodeHandle nhPrivate;
 		/*subscribe*/
 		ros::Subscriber sub_pc;
 		/*publish*/
 		ros::Publisher pub_pc;
 		/*pcl*/
-		pcl::visualization::PCLVisualizer viewer {"Normal Estimation OMP"};
+		pcl::visualization::PCLVisualizer viewer {"Normal Estimation Multi Thread"};
 		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud {new pcl::PointCloud<pcl::PointXYZ>};
 		pcl::PointCloud<pcl::PointNormal>::Ptr normals {new pcl::PointCloud<pcl::PointNormal>};
-		/*sub class*/
-		class NormalEstimation{
-			private:
-				pcl::PointCloud<pcl::PointNormal>::Ptr normals_ {new pcl::PointCloud<pcl::PointNormal>};
-				size_t i_start;
-				size_t i_end;
-			public:
-				NormalEstimation(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const pcl::KdTreeFLANN<pcl::PointXYZ>& kdtree, int start, int end, int skip);
-				void Computation(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const pcl::KdTreeFLANN<pcl::PointXYZ>& kdtree, int start, int end, int skip);
-				std::vector<int> KdtreeSearch(pcl::PointXYZ searchpoint, const pcl::KdTreeFLANN<pcl::PointXYZ>& kdtree, double search_radius);
-				pcl::PointCloud<pcl::PointNormal> GetNormals(void);
-		};
+		/*parameters*/
+		int skip;
+		double search_radius_ratio;
 	public:
 		NormalEstimationMultiThread();
 		void CallbackPC(const sensor_msgs::PointCloud2ConstPtr &msg);
-		void GenerateThreads(void);
-		void ClearPoints(void);
+		void Computation(void);
+		std::vector<int> KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius);
+		double Getdepth(pcl::PointXYZ point);
 		void Visualization(void);
 		void Publication(void);
 };
 
 NormalEstimationMultiThread::NormalEstimationMultiThread()
+	:nhPrivate("~")
 {
 	sub_pc = nh.subscribe("/velodyne_points", 1, &NormalEstimationMultiThread::CallbackPC, this);
 	pub_pc = nh.advertise<sensor_msgs::PointCloud2>("/normals", 1);
 	viewer.setBackgroundColor(1, 1, 1);
 	viewer.addCoordinateSystem(0.8, "axis");
 	viewer.setCameraPosition(-30.0, 0.0, 10.0, 0.0, 0.0, 1.0);
+
+	nhPrivate.param("skip", skip, 3);
+	nhPrivate.param("search_radius_ratio", search_radius_ratio, 0.09);
+	std::cout << "skip = " << skip << std::endl;
+	std::cout << "search_radius_ratio = " << search_radius_ratio << std::endl;
 }
 
 void NormalEstimationMultiThread::CallbackPC(const sensor_msgs::PointCloud2ConstPtr &msg)
@@ -58,45 +56,58 @@ void NormalEstimationMultiThread::CallbackPC(const sensor_msgs::PointCloud2Const
 
 	pcl::fromROSMsg(*msg, *cloud);
 	std::cout << "cloud->points.size() = " << cloud->points.size() << std::endl;
-	std::cout << "cloud->is_dense = " << (bool)cloud->is_dense << std::endl;
-	ClearPoints();
-	/*generate kd-tree*/
+	/* std::cout << "cloud->is_dense = " << (bool)cloud->is_dense << std::endl; */
+	copyPointCloud(*cloud, *normals);
+
 	kdtree.setInputCloud(cloud);
-	/*computation*/
-	GenerateThreads();
+	Computation();
 
 	Publication();
 	Visualization();
 }
 
-void NormalEstimationMultiThread::ClearPoints(void)
-{
-	normals->points.clear();
-}
-
-void NormalEstimationMultiThread::GenerateThreads(void)
+void NormalEstimationMultiThread::Computation(void)
 {
 	std::cout << "omp_get_max_threads() = " << omp_get_max_threads() << std::endl;
-
-	const int num_threads = omp_get_max_threads();
-	const int skip = 3;
-
-	std::vector<NormalEstimation> multi_threads;
 
 	double time_start = ros::Time::now().toSec();
 	
 	#pragma omp parallel for
-	for(int i=0;i<num_threads;i++){
-		/* std::cout << "omp_get_thread_num() = " << omp_get_thread_num() << std::endl; */
-		int start = i*cloud->points.size()/num_threads;
-		int end = (i+1)*cloud->points.size()/num_threads;
-		NormalEstimation thread(cloud, kdtree, start, end, skip);
-		// *normals += thread.GetNormals();
-		multi_threads.push_back(thread);
+	for(size_t i=0;i<cloud->points.size();i+=skip){
+		/*search neighbor points*/
+		double laser_distance = Getdepth(cloud->points[i]);
+		double search_radius = search_radius_ratio*laser_distance;
+		std::vector<int> indices = KdtreeSearch(cloud->points[i], search_radius);
+		/*compute normal*/
+		float curvature;
+		Eigen::Vector4f plane_parameters;
+		pcl::computePointNormal(*cloud, indices, plane_parameters, curvature);
+		/*input*/
+		normals->points[i].normal_x = plane_parameters[0];
+		normals->points[i].normal_y = plane_parameters[1];
+		normals->points[i].normal_z = plane_parameters[2];
+		normals->points[i].curvature = curvature;
+		flipNormalTowardsViewpoint(cloud->points[i], 0.0, 0.0, 0.0, normals->points[i].normal_x, normals->points[i].normal_y, normals->points[i].normal_z);
 	}
-	for(int i=0;i<num_threads;i++)	*normals += multi_threads[i].GetNormals();
 
-	std::cout << "time | total [s] = " << ros::Time::now().toSec() - time_start << std::endl;
+	std::cout << "computation time [s] = " << ros::Time::now().toSec() - time_start << std::endl;
+}
+
+std::vector<int> NormalEstimationMultiThread::KdtreeSearch(pcl::PointXYZ searchpoint, double search_radius)
+{
+	std::vector<int> pointIdxRadiusSearch;
+	std::vector<float> pointRadiusSquaredDistance;
+	if(kdtree.radiusSearch(searchpoint, search_radius, pointIdxRadiusSearch, pointRadiusSquaredDistance)<=0)	std::cout << "kdtree error" << std::endl;
+	return pointIdxRadiusSearch; 
+}
+
+double NormalEstimationMultiThread::Getdepth(pcl::PointXYZ point)
+{
+	double depth = sqrt(
+		point.x*point.x
+		+ point.y*point.y
+		+ point.z*point.z
+	);
 }
 
 void NormalEstimationMultiThread::Visualization(void)
@@ -122,52 +133,6 @@ void NormalEstimationMultiThread::Publication(void)
 	sensor_msgs::PointCloud2 pc;
 	pcl::toROSMsg(*normals, pc);
 	pub_pc.publish(pc);
-}
-
-NormalEstimationMultiThread::NormalEstimation::NormalEstimation(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const pcl::KdTreeFLANN<pcl::PointXYZ>& kdtree, int start, int end, int skip)
-{
-	Computation(cloud, kdtree, start, end, skip);
-}
-
-void NormalEstimationMultiThread::NormalEstimation::Computation(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const pcl::KdTreeFLANN<pcl::PointXYZ>& kdtree, int start, int end, int skip)
-{
-	double time_start = ros::Time::now().toSec();
-	/* std::cout << "start index : " << start << std::endl;  */
-	for(size_t i=start;i<end;i+=skip){
-		/*search neighbor points*/
-		std::vector<int> indices;
-		const double search_radius = 0.3;
-		indices = KdtreeSearch(cloud->points[i], kdtree, search_radius);
-		/*compute normal*/
-		float curvature;
-		Eigen::Vector4f plane_parameters;
-		pcl::computePointNormal(*cloud, indices, plane_parameters, curvature);
-		/*create tmp object*/
-		pcl::PointNormal tmp_normal;
-		tmp_normal.x = cloud->points[i].x;
-		tmp_normal.y = cloud->points[i].y;
-		tmp_normal.z = cloud->points[i].z;
-		tmp_normal.normal_x = plane_parameters[0];
-		tmp_normal.normal_y = plane_parameters[1];
-		tmp_normal.normal_z = plane_parameters[2];
-		tmp_normal.curvature = curvature;
-		flipNormalTowardsViewpoint(tmp_normal, 0.0, 0.0, 0.0, tmp_normal.normal_x, tmp_normal.normal_y, tmp_normal.normal_z);
-		normals_->points.push_back(tmp_normal);
-	}
-	std::cout << "time | single thread [s] = " << ros::Time::now().toSec() - time_start << std::endl;
-}
-
-std::vector<int> NormalEstimationMultiThread::NormalEstimation::KdtreeSearch(pcl::PointXYZ searchpoint, const pcl::KdTreeFLANN<pcl::PointXYZ>& kdtree, double search_radius)
-{
-	std::vector<int> pointIdxRadiusSearch;
-	std::vector<float> pointRadiusSquaredDistance;
-	if(kdtree.radiusSearch(searchpoint, search_radius, pointIdxRadiusSearch, pointRadiusSquaredDistance)<=0)	std::cout << "kdtree error" << std::endl;
-	return pointIdxRadiusSearch; 
-}
-
-pcl::PointCloud<pcl::PointNormal> NormalEstimationMultiThread::NormalEstimation::GetNormals(void)
-{
-	return *normals_;
 }
 
 int main(int argc, char** argv)
