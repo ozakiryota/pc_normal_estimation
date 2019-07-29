@@ -57,7 +57,7 @@ void NormalEstimationMultiThread::CallbackPC(const sensor_msgs::PointCloud2Const
 	pcl::fromROSMsg(*msg, *cloud);
 	std::cout << "cloud->points.size() = " << cloud->points.size() << std::endl;
 	normals->points.clear();
-	normals->points.resize(cloud->points.size()/skip + 1);
+	normals->points.resize((cloud->points.size()-1)/skip + 1);
 
 	kdtree.setInputCloud(cloud);
 	Computation();
@@ -72,9 +72,9 @@ void NormalEstimationMultiThread::Computation(void)
 
 	double time_start = ros::Time::now().toSec();
 
-	int counter = 0;
-	
+	#ifdef _OPENMP
 	#pragma omp parallel for
+	#endif
 	for(size_t i=0;i<cloud->points.size();i+=skip){
 		/*search neighbor points*/
 		double laser_distance = Getdepth(cloud->points[i]);
@@ -94,12 +94,7 @@ void NormalEstimationMultiThread::Computation(void)
 		normals->points[normal_index].normal_z = plane_parameters[2];
 		normals->points[normal_index].curvature = curvature;
 		flipNormalTowardsViewpoint(cloud->points[i], 0.0, 0.0, 0.0, normals->points[normal_index].normal_x, normals->points[normal_index].normal_y, normals->points[normal_index].normal_z);
-
-		counter++;
 	}
-	std::cout << "counter = " << counter << std::endl;
-	std::cout << "normals->points.size() = " << normals->points.size() << std::endl;
-	if(counter != normals->points.size())	std::cout << "error!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 	for(size_t i=0;i<normals->points.size();){
 		if(std::isnan(normals->points[i].normal_x) || std::isnan(normals->points[i].normal_y) || std::isnan(normals->points[i].normal_z)){
 			std::cout << "deleted NAN normal" << std::endl;
