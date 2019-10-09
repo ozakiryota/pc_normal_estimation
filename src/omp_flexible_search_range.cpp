@@ -89,9 +89,13 @@ void NormalEstimationMultiThread::Computation(void)
 		normals->points[normal_index].x = cloud->points[i].x;
 		normals->points[normal_index].y = cloud->points[i].y;
 		normals->points[normal_index].z = cloud->points[i].z;
-		normals->points[normal_index].normal_x = plane_parameters[0];
-		normals->points[normal_index].normal_y = plane_parameters[1];
-		normals->points[normal_index].normal_z = plane_parameters[2];
+		/* normals->points[normal_index].normal_x = plane_parameters[0]; */
+		/* normals->points[normal_index].normal_y = plane_parameters[1]; */
+		/* normals->points[normal_index].normal_z = plane_parameters[2]; */
+		normals->points[normal_index].data_n[0] = plane_parameters[0];
+		normals->points[normal_index].data_n[1] = plane_parameters[3];
+		normals->points[normal_index].data_n[2] = plane_parameters[2];
+		normals->points[normal_index].data_n[3] = plane_parameters[1];
 		normals->points[normal_index].curvature = curvature;
 		flipNormalTowardsViewpoint(cloud->points[i], 0.0, 0.0, 0.0, normals->points[normal_index].normal_x, normals->points[normal_index].normal_y, normals->points[normal_index].normal_z);
 	}
