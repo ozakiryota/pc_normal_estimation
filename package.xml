@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>normal_estimation_pcl</name>
+  <name>pc_normal_estimation</name>
   <version>0.0.0</version>
-  <description>The normal_estimation_pcl package</description>
+  <description>The pc_normal_estimation package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/normal_estimation_pcl</url> -->
+  <!-- <url type="website">http://wiki.ros.org/pc_normal_estimation</url> -->
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->

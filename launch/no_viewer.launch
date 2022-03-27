@@ -3,5 +3,5 @@
 	<param name="use_sim_time" value="true"/>
 
 	<!-- main -->
-	<node pkg="normal_estimation_pcl" name="no_viewer" type="no_viewer" output="screen"/>
+	<node pkg="pc_normal_estimation" name="no_viewer" type="no_viewer" output="screen"/>
 </launch>

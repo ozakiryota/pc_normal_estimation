@@ -6,11 +6,11 @@
 	<node pkg="rosbag" type="play" name="player" args="--clock /home/amsl/ozaki/bagfiles/infant/indoor_dkan/2019-04-04-14-27-47.bag"/>
 
 	<!-- rviz -->
-	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find normal_estimation_pcl)/rviz_config/normal_estimation.rviz"/>
+	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find pc_normal_estimation)/rviz_config/normal_estimation.rviz"/>
 
 	<!-- sensor driver -->
 	<include file="$(find velodyne_pointcloud)/launch/32e_points.launch"/>
 
 	<!-- main -->
-	<node pkg="normal_estimation_pcl" name="normal_estimation_pcl_omp" type="normal_estimation_pcl_omp" output="screen"/>
+	<node pkg="pc_normal_estimation" name="normal_estimation_pcl_omp" type="normal_estimation_pcl_omp" output="screen"/>
 </launch>
