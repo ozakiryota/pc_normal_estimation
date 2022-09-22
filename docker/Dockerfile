@@ -32,10 +32,10 @@ RUN apt-get update && \
 		libpcl-dev \
 		ros-noetic-pcl-conversions \
 		ros-noetic-rviz && \
-	cd ~/catkin_ws/src
-	# git clone https://github.com/ozakiryota/pc_normal_estimation.git && \
-	# cd ~/catkin_ws/ && \
-	# /bin/bash -c "source /opt/ros/noetic/setup.bash; catkin_make"
+	cd ~/catkin_ws/src && \
+	git clone https://github.com/ozakiryota/pc_normal_estimation.git && \
+	cd ~/catkin_ws && \
+	/bin/bash -c "source /opt/ros/noetic/setup.bash; catkin_make"
 ########## Velodyne driver ##########
 RUN apt-get update && \
 	apt-get install -y \
