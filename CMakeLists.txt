@@ -43,6 +43,12 @@ target_link_libraries(normal_estimation
     ${PCL_LIBRARIES}
 )
 
+add_executable(normal_estimation_omp src/normal_estimation_omp.cpp)
+target_link_libraries(normal_estimation_omp
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+)
+
 #add_executable(pc_normal_estimation src/pc_normal_estimation.cpp)
 #target_link_libraries(pc_normal_estimation ${catkin_LIBRARIES})
 #add_executable(normal_estimation_pcl_multithreads src/normal_estimation_pcl_multithreads.cpp)

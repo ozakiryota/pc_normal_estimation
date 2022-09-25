@@ -12,7 +12,7 @@
 	<include file="$(find velodyne_pointcloud)/launch/32e_points.launch"/>
 
 	<!-- main -->
-	<node pkg="pc_normal_estimation" type="normal_estimation" name="normal_estimation" output="screen">
+	<node pkg="pc_normal_estimation" type="normal_estimation_omp" name="normal_estimation_omp" output="screen">
 		<remap from="/point_cloud" to="/velodyne_points"/>
 		<param name="search_radius" type="double" value="0.5"/>
 	</node>

@@ -3,10 +3,10 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/features/normal_3d.h>
+#include <pcl/features/normal_3d_omp.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-class PcNormalEstimation{
+class PcNormalEstimationOmp{
 	private:
 		/*node handle*/
 		ros::NodeHandle nh_;
@@ -19,26 +19,26 @@ class PcNormalEstimation{
 		double search_radius_;
 
 	public:
-		PcNormalEstimation();
+		PcNormalEstimationOmp();
 		void callback(const sensor_msgs::PointCloud2ConstPtr& msg);
 		template<typename PcPtr, typename PointType, typename NcPtr, typename NormalType, typename KdTreePtr> void normalEstimation(PcPtr pc, PointType no_use_p, NcPtr nc, NormalType no_use_n, sensor_msgs::PointCloud2& pub_pc_msg, KdTreePtr kdtree);
 		void publishMsg(const sensor_msgs::PointCloud2& pub_pc_msg);
 };
 
-PcNormalEstimation::PcNormalEstimation()
+PcNormalEstimationOmp::PcNormalEstimationOmp()
 	: nh_private_("~")
 {
-	std::cout << "----- pc_normal_estimation -----" << std::endl;
+	std::cout << "----- pc_normal_estimation_omp -----" << std::endl;
 	/*parameter*/
 	nh_private_.param("search_radius", search_radius_, 0.5);
 	std::cout << "search_radius_ = " << search_radius_ << std::endl;
 	/*subscriber*/
-	pc_sub_ = nh_.subscribe("/point_cloud", 1, &PcNormalEstimation::callback, this);
+	pc_sub_ = nh_.subscribe("/point_cloud", 1, &PcNormalEstimationOmp::callback, this);
 	/*publisher*/
 	pc_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("/normal_cloud", 1);
 }
 
-void PcNormalEstimation::callback(const sensor_msgs::PointCloud2ConstPtr &msg)
+void PcNormalEstimationOmp::callback(const sensor_msgs::PointCloud2ConstPtr &msg)
 {
 	sensor_msgs::PointCloud2 pub_pc_msg;
 
@@ -63,26 +63,26 @@ void PcNormalEstimation::callback(const sensor_msgs::PointCloud2ConstPtr &msg)
 }
 
 template<typename PcPtr, typename PointType, typename NcPtr, typename NormalType, typename KdTreePtr>
-void PcNormalEstimation::normalEstimation(PcPtr pc, PointType no_use_p, NcPtr nc, NormalType no_use_n, sensor_msgs::PointCloud2& pub_pc_msg, KdTreePtr kdtree)
+void PcNormalEstimationOmp::normalEstimation(PcPtr pc, PointType no_use_p, NcPtr nc, NormalType no_use_n, sensor_msgs::PointCloud2& pub_pc_msg, KdTreePtr kdtree)
 {
-	pcl::NormalEstimation<PointType, NormalType> ne;
-	ne.setRadiusSearch(search_radius_);
-	ne.setInputCloud(pc);
-	ne.setSearchMethod(kdtree);
-	ne.compute(*nc);
+	pcl::NormalEstimationOMP<PointType, NormalType> neomp;
+	neomp.setRadiusSearch(search_radius_);
+	neomp.setInputCloud(pc);
+	neomp.setSearchMethod(kdtree);
+	neomp.compute(*nc);
 	pcl::toROSMsg(*nc, pub_pc_msg);
 }
 
-void PcNormalEstimation::publishMsg(const sensor_msgs::PointCloud2& pub_pc_msg)
+void PcNormalEstimationOmp::publishMsg(const sensor_msgs::PointCloud2& pub_pc_msg)
 {
 	pc_pub_.publish(pub_pc_msg);
 }
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "pc_normal_estimation");
+	ros::init(argc, argv, "pc_normal_estimation_omp");
 
-	PcNormalEstimation pc_normal_estimation;
+	PcNormalEstimationOmp pc_normal_estimation_omp;
 
 	ros::spin();
 }
